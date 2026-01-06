@@ -49,6 +49,10 @@ Pages.Admin = {
                         <button class="admin-nav-item ${this.activeTab === 'reports' ? 'active' : ''}" onclick="Pages.Admin.switchTab('reports')">
                             <i class="fas fa-chart-bar"></i> <span>Laporan</span>
                         </button>
+                        <button class="admin-nav-item" onclick="Router.navigate('/analytics')" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));">
+                            <i class="fas fa-chart-pie"></i> <span>Analytics</span>
+                            <span class="badge badge-primary" style="font-size: 9px; margin-left: 8px;">New</span>
+                        </button>
                     </nav>
                     <button class="btn btn-danger btn-block" style="margin-top:auto;" onclick="Auth.logout()">
                         <i class="fas fa-sign-out-alt"></i> Logout

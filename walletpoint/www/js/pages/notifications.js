@@ -4,6 +4,8 @@
 Pages.Notifications = {
     notifications: [],
     unreadCount: 0,
+    activityScore: 0,
+    moodLevel: 'normal',
 
     async render() {
         const app = document.getElementById('app');
@@ -12,6 +14,19 @@ Pages.Notifications = {
         app.innerHTML = `
             <div class="page">
                 ${Components.pageHeader('Notifikasi', true)}
+                
+                <!-- Mood/Motivation Analysis Card -->
+                <div id="mood-analysis-card" class="card mb-lg" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));">
+                    <div class="text-center">
+                        <div class="spinner" style="margin: 0 auto;"></div>
+                        <p class="text-muted mt-sm">Menganalisis aktivitas...</p>
+                    </div>
+                </div>
+                
+                <!-- Recommended Missions -->
+                <div id="recommended-missions" class="mb-lg" style="display: none;">
+                    <!-- Will be populated -->
+                </div>
                 
                 <div class="flex items-center justify-between mb-md">
                     <span class="text-muted">Semua notifikasi</span>
@@ -29,6 +44,255 @@ Pages.Notifications = {
         `;
 
         await this.loadNotifications();
+        await this.analyzeUserMood();
+    },
+
+    async analyzeUserMood() {
+        const user = Auth.getUser();
+        const moodCard = document.getElementById('mood-analysis-card');
+
+        // Calculate activity score based on mission history
+        const activityData = await this.getActivityData();
+        this.activityScore = activityData.score;
+        this.moodLevel = this.calculateMoodLevel(activityData);
+
+        const moodConfig = this.getMoodConfig(this.moodLevel);
+
+        moodCard.innerHTML = `
+            <div class="flex items-center gap-md">
+                <div style="width: 64px; height: 64px; border-radius: 50%; background: ${moodConfig.gradient}; display: flex; align-items: center; justify-content: center; font-size: 32px;">
+                    ${moodConfig.emoji}
+                </div>
+                <div class="flex-1">
+                    <h4 style="margin-bottom: 4px; color: ${moodConfig.color};">${moodConfig.title}</h4>
+                    <p class="text-muted" style="font-size: 13px; margin-bottom: 8px;">${moodConfig.message}</p>
+                    <div class="flex items-center gap-sm">
+                        <div style="flex: 1; height: 8px; background: var(--card); border-radius: 4px; overflow: hidden;">
+                            <div style="width: ${this.activityScore}%; height: 100%; background: ${moodConfig.gradient}; border-radius: 4px;"></div>
+                        </div>
+                        <span style="font-size: 12px; font-weight: 600; color: ${moodConfig.color};">${this.activityScore}%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex gap-sm mt-md">
+                <div class="flex-1 text-center" style="padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                    <div style="font-size: 20px; font-weight: 700;">${activityData.missionsCompleted}</div>
+                    <div class="text-muted" style="font-size: 11px;">Misi Selesai</div>
+                </div>
+                <div class="flex-1 text-center" style="padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                    <div style="font-size: 20px; font-weight: 700;">${activityData.streak}</div>
+                    <div class="text-muted" style="font-size: 11px;">Hari Streak</div>
+                </div>
+                <div class="flex-1 text-center" style="padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                    <div style="font-size: 20px; font-weight: 700;">${Utils.formatCurrency(activityData.pointsEarned)}</div>
+                    <div class="text-muted" style="font-size: 11px;">Poin Minggu Ini</div>
+                </div>
+            </div>
+        `;
+
+        // Show recommended missions
+        this.showRecommendedMissions(activityData);
+    },
+
+    async getActivityData() {
+        // Get real data from localStorage
+        const completedQuizzes = Utils.storage.get('wp_completed_quizzes') || [];
+        const transactions = Utils.storage.get('wp_transactions') || [];
+        const lastLogin = Utils.storage.get('wp_last_login');
+        const loginStreak = Utils.storage.get('wp_login_streak') || 0;
+
+        // Calculate missions completed this week
+        const now = new Date();
+        const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+
+        let missionsCompleted = completedQuizzes.length;
+        let pointsEarned = Utils.storage.get('wp_points_earned_week') || 0;
+        let streak = loginStreak;
+
+        // Update login streak
+        if (lastLogin) {
+            const lastDate = new Date(lastLogin).toDateString();
+            const today = now.toDateString();
+            const yesterday = new Date(now - 24 * 60 * 60 * 1000).toDateString();
+
+            if (lastDate !== today) {
+                if (lastDate === yesterday) {
+                    streak = loginStreak + 1;
+                } else {
+                    streak = 1;
+                }
+                Utils.storage.set('wp_login_streak', streak);
+                Utils.storage.set('wp_last_login', now.toISOString());
+            }
+        } else {
+            streak = 1;
+            Utils.storage.set('wp_login_streak', streak);
+            Utils.storage.set('wp_last_login', now.toISOString());
+        }
+
+        // Calculate score (0-100)
+        const score = Math.min(100, Math.round(
+            (missionsCompleted * 15) +
+            (streak * 8) +
+            Math.min(30, pointsEarned / 20)
+        ));
+
+        return {
+            missionsCompleted,
+            pointsEarned,
+            streak,
+            score,
+            lastActiveDate: now
+        };
+    },
+
+    calculateMoodLevel(activityData) {
+        const score = activityData.score;
+
+        if (score >= 80) return 'excellent';
+        if (score >= 60) return 'good';
+        if (score >= 40) return 'normal';
+        if (score >= 20) return 'low';
+        return 'needs_motivation';
+    },
+
+    getMoodConfig(level) {
+        const configs = {
+            excellent: {
+                emoji: '🔥',
+                title: 'Semangat Membara!',
+                message: 'Luar biasa! Kamu sangat aktif minggu ini.',
+                color: '#10b981',
+                gradient: 'linear-gradient(135deg, #10b981, #059669)'
+            },
+            good: {
+                emoji: '😊',
+                title: 'Semangat Bagus!',
+                message: 'Bagus! Terus pertahankan momentum.',
+                color: '#3b82f6',
+                gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)'
+            },
+            normal: {
+                emoji: '🙂',
+                title: 'Semangat Stabil',
+                message: 'Aktivitasmu cukup baik. Ayo tingkatkan lagi!',
+                color: '#8b5cf6',
+                gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)'
+            },
+            low: {
+                emoji: '😐',
+                title: 'Perlu Semangat',
+                message: 'Aktivitasmu menurun. Coba selesaikan misi!',
+                color: '#f59e0b',
+                gradient: 'linear-gradient(135deg, #f59e0b, #d97706)'
+            },
+            needs_motivation: {
+                emoji: '💪',
+                title: 'Ayo Bangkit!',
+                message: 'Sudah lama tidak aktif. Mulai dari misi mudah!',
+                color: '#ef4444',
+                gradient: 'linear-gradient(135deg, #ef4444, #dc2626)'
+            }
+        };
+
+        return configs[level] || configs.normal;
+    },
+
+    showRecommendedMissions(activityData) {
+        const container = document.getElementById('recommended-missions');
+        const moodLevel = this.moodLevel;
+
+        // Get recommended missions based on mood
+        const recommendations = this.getRecommendedMissions(moodLevel, activityData);
+
+        if (recommendations.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+
+        container.style.display = 'block';
+        container.innerHTML = `
+            <div class="flex items-center justify-between mb-sm">
+                <h4><i class="fas fa-magic"></i> Rekomendasi Misi</h4>
+                <button class="btn btn-sm btn-ghost" onclick="Router.navigate('/missions')">
+                    Lihat Semua <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <div class="list">
+                ${recommendations.map(mission => `
+                    <div class="list-item" onclick="Router.navigate('/missions')">
+                        <div class="list-item-icon" style="background: ${mission.bgColor};">
+                            <i class="fas ${mission.icon}" style="color: ${mission.iconColor};"></i>
+                        </div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">${Utils.escapeHtml(mission.title)}</div>
+                            <div class="list-item-subtitle">${Utils.escapeHtml(mission.reason)}</div>
+                        </div>
+                        <div class="text-right">
+                            <span class="badge badge-success">+${Utils.formatCurrency(mission.reward)}</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    },
+
+    getRecommendedMissions(moodLevel, activityData) {
+        const missions = [];
+
+        if (moodLevel === 'needs_motivation' || moodLevel === 'low') {
+            missions.push({
+                id: 'easy-1',
+                title: 'Quiz Cepat: Pengetahuan Umum',
+                reason: 'Mudah diselesaikan untuk memulai',
+                reward: 25,
+                icon: 'fa-bolt',
+                iconColor: '#f59e0b',
+                bgColor: 'rgba(245, 158, 11, 0.1)'
+            });
+            missions.push({
+                id: 'daily-1',
+                title: 'Misi Harian: Login Streak',
+                reason: 'Pertahankan kehadiranmu',
+                reward: 10,
+                icon: 'fa-calendar-check',
+                iconColor: '#10b981',
+                bgColor: 'rgba(16, 185, 129, 0.1)'
+            });
+        } else if (moodLevel === 'normal') {
+            missions.push({
+                id: 'medium-1',
+                title: 'Quiz Pemrograman Dasar',
+                reason: 'Sesuai dengan kemampuanmu',
+                reward: 50,
+                icon: 'fa-code',
+                iconColor: '#3b82f6',
+                bgColor: 'rgba(59, 130, 246, 0.1)'
+            });
+        } else if (moodLevel === 'good' || moodLevel === 'excellent') {
+            missions.push({
+                id: 'hard-1',
+                title: 'Tantangan: Database Expert',
+                reason: 'Tingkatkan skill ke level berikutnya!',
+                reward: 100,
+                icon: 'fa-database',
+                iconColor: '#8b5cf6',
+                bgColor: 'rgba(139, 92, 246, 0.1)'
+            });
+            missions.push({
+                id: 'bonus-1',
+                title: 'Bonus: Review Materi Lengkap',
+                reason: 'Kamu siap untuk tantangan besar!',
+                reward: 150,
+                icon: 'fa-trophy',
+                iconColor: '#eab308',
+                bgColor: 'rgba(234, 179, 8, 0.1)'
+            });
+        }
+
+        return missions;
     },
 
     async loadNotifications() {
@@ -41,121 +305,38 @@ Pages.Notifications = {
             if (response.success && response.data?.notifications) {
                 this.notifications = response.data.notifications;
             } else {
-                // Use mock data if API not available
-                this.notifications = this.getMockNotifications();
+                // Use in-app notifications from localStorage
+                this.notifications = this.getStoredNotifications();
             }
 
             this.renderNotifications();
         } catch (error) {
-            // Use mock data on error
-            console.log('Using mock notifications:', error.message);
-            this.notifications = this.getMockNotifications();
+            // Use stored notifications on error
+            console.log('Using stored notifications');
+            this.notifications = this.getStoredNotifications();
             this.renderNotifications();
         }
     },
 
-    getMockNotifications() {
-        const user = Auth.getUser();
-        const now = Date.now();
-        const role = user?.role || 'mahasiswa';
+    getStoredNotifications() {
+        // Get notifications from PushNotification service storage
+        const stored = Utils.storage.get('wp_in_app_notifications') || [];
 
-        const notifications = [];
-
-        // Role-specific notifications
-        if (role === 'admin') {
-            notifications.push({
-                id: 'admin-1',
+        // If no notifications yet, return welcome notification
+        if (stored.length === 0) {
+            return [{
+                id: 'welcome-1',
                 type: 'system',
-                title: 'Laporan Harian',
-                message: 'Ada 15 transaksi baru hari ini dengan total Rp 1.250.000',
-                icon: 'fa-chart-bar',
-                iconColor: '#3b82f6',
+                title: 'Selamat Datang!',
+                message: 'Terima kasih telah bergabung dengan WalletPoint.',
+                icon: 'fa-hand-wave',
+                iconColor: '#8b5cf6',
                 is_read: false,
-                created_at: new Date(now - 1000 * 60 * 10).toISOString()
-            });
-            notifications.push({
-                id: 'admin-2',
-                type: 'system',
-                title: 'User Baru Terdaftar',
-                message: '3 mahasiswa baru telah terdaftar hari ini',
-                icon: 'fa-user-plus',
-                iconColor: '#10b981',
-                is_read: false,
-                created_at: new Date(now - 1000 * 60 * 30).toISOString()
-            });
+                created_at: new Date().toISOString()
+            }];
         }
 
-        if (role === 'dosen') {
-            notifications.push({
-                id: 'dosen-1',
-                type: 'order',
-                title: 'Pesanan Baru!',
-                message: 'Mahasiswa telah membeli produk Anda. Siapkan untuk pengambilan.',
-                icon: 'fa-shopping-bag',
-                iconColor: '#ef4444',
-                is_read: false,
-                action: 'pickup',
-                created_at: new Date(now - 1000 * 60 * 2).toISOString()
-            });
-            notifications.push({
-                id: 'dosen-2',
-                type: 'product',
-                title: 'Produk Laris',
-                message: 'E-Book "Panduan Praktikum" sudah terjual 10 kali!',
-                icon: 'fa-fire',
-                iconColor: '#f59e0b',
-                is_read: true,
-                created_at: new Date(now - 1000 * 60 * 60 * 2).toISOString()
-            });
-        }
-
-        if (role === 'mahasiswa') {
-            notifications.push({
-                id: 'mhs-1',
-                type: 'transaction',
-                title: 'Pembayaran Berhasil',
-                message: 'Pembelian E-Book "Panduan Praktikum" telah berhasil.',
-                icon: 'fa-check-circle',
-                iconColor: '#10b981',
-                is_read: false,
-                created_at: new Date(now - 1000 * 60 * 5).toISOString()
-            });
-            notifications.push({
-                id: 'mhs-2',
-                type: 'mission',
-                title: 'Misi Tersedia!',
-                message: 'Selesaikan 3 transaksi minggu ini dan dapatkan bonus 500 poin!',
-                icon: 'fa-trophy',
-                iconColor: '#f59e0b',
-                is_read: false,
-                created_at: new Date(now - 1000 * 60 * 30).toISOString()
-            });
-        }
-
-        // Common notifications for all roles
-        notifications.push({
-            id: 'common-1',
-            type: 'product',
-            title: 'Produk Baru',
-            message: 'Dr. Ahmad Fauzi menambahkan produk baru: "Modul IoT"',
-            icon: 'fa-box',
-            iconColor: '#3b82f6',
-            is_read: true,
-            created_at: new Date(now - 1000 * 60 * 60 * 2).toISOString()
-        });
-
-        notifications.push({
-            id: 'common-2',
-            type: 'system',
-            title: 'Selamat Datang!',
-            message: 'Terima kasih telah bergabung dengan WalletPoint.',
-            icon: 'fa-bell',
-            iconColor: '#8b5cf6',
-            is_read: true,
-            created_at: new Date(now - 1000 * 60 * 60 * 24).toISOString()
-        });
-
-        return notifications;
+        return stored;
     },
 
     renderNotifications() {

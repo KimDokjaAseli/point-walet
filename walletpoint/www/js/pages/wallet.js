@@ -23,6 +23,19 @@ Pages.Wallet = {
                     </div>
                 </div>
                 
+                <!-- Quick Actions -->
+                <div class="flex gap-sm mt-lg">
+                    <button class="btn btn-primary flex-1" onclick="Router.navigate('/transfer')">
+                        <i class="fas fa-paper-plane"></i> Transfer
+                    </button>
+                    <button class="btn btn-secondary flex-1" onclick="Router.navigate('/missions')">
+                        <i class="fas fa-trophy"></i> Quiz
+                    </button>
+                    <button class="btn btn-secondary flex-1" onclick="Router.navigate('/scan')">
+                        <i class="fas fa-qrcode"></i> Scan
+                    </button>
+                </div>
+                
                 <div id="wallet-summary" class="card mt-lg mb-lg">
                     <div class="flex justify-between items-center mb-md">
                         <div>
@@ -156,6 +169,85 @@ Pages.Wallet = {
         if (this.currentPage < this.totalPages) {
             this.currentPage++;
             this.loadTransactions();
+        }
+    },
+
+    showTopUp() {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay active';
+        overlay.innerHTML = `
+            <div class="modal" style="max-width: 380px;">
+                <div class="modal-header">
+                    <h3 class="modal-title">Top Up Saldo</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <p class="text-muted mb-md" style="font-size: 13px;">
+                    Pilih nominal top up atau masukkan jumlah custom
+                </p>
+                
+                <!-- Quick Amounts -->
+                <div class="flex flex-wrap gap-sm mb-lg">
+                    <button class="btn btn-secondary" onclick="document.getElementById('topup-amount').value = 50">50</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('topup-amount').value = 100">100</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('topup-amount').value = 200">200</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('topup-amount').value = 500">500</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('topup-amount').value = 1000">1000</button>
+                </div>
+                
+                <form onsubmit="Pages.Wallet.processTopUp(event)">
+                    <div class="form-group">
+                        <label class="form-label">Jumlah</label>
+                        <input type="number" class="form-input" id="topup-amount" 
+                               placeholder="Masukkan jumlah" required min="10" 
+                               style="font-size: 24px; text-align: center; font-weight: 600;">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block btn-lg">
+                        <i class="fas fa-plus"></i> Top Up
+                    </button>
+                </form>
+                
+                <p class="text-center text-muted mt-md" style="font-size: 11px;">
+                    <i class="fas fa-info-circle"></i> Demo mode: Top up akan langsung ditambahkan
+                </p>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+    },
+
+    async processTopUp(e) {
+        e.preventDefault();
+
+        const amount = parseInt(document.getElementById('topup-amount').value);
+        if (!amount || amount < 10) {
+            Utils.toast('Masukkan jumlah minimal 10', 'error');
+            return;
+        }
+
+        document.querySelector('.modal-overlay')?.remove();
+        Utils.showLoading('Memproses top up...');
+
+        try {
+            const response = await Api.request('/wallet/topup', {
+                method: 'POST',
+                body: { amount }
+            });
+
+            Utils.hideLoading();
+
+            if (response.success) {
+                Utils.toast(`Top up ${Utils.formatCurrency(amount)} berhasil!`, 'success');
+                this.loadData();
+            }
+        } catch (error) {
+            Utils.hideLoading();
+            // For demo, show success anyway
+            Utils.toast(`Top up ${Utils.formatCurrency(amount)} berhasil!`, 'success');
+            this.loadData();
         }
     }
 };

@@ -52,12 +52,21 @@ Pages.Missions = {
         ]
     },
 
+    // Custom missions from dosen
+    dosenMissions: [],
+
     async render() {
         const app = document.getElementById('app');
+        const isDosen = Auth.isDosen();
+        const isAdmin = Auth.isAdmin();
 
         app.innerHTML = `
             <div class="page" style="padding-bottom: 100px;">
-                ${Components.pageHeader('Quiz', false, '')}
+                ${Components.pageHeader('Quiz', false, isDosen ? `
+                    <button class="btn btn-primary btn-sm" onclick="Pages.Missions.showCreateMissionForm()">
+                        <i class="fas fa-plus"></i> Buat Quiz
+                    </button>
+                ` : '')}
                 
                 <div class="flex gap-sm mb-lg" style="overflow-x: auto; padding-bottom: 8px;">
                     <button class="btn btn-sm ${!this.activeFilter ? 'btn-primary' : 'btn-secondary'}" onclick="Pages.Missions.filterMissions('')">
@@ -69,11 +78,20 @@ Pages.Missions = {
                     <button class="btn btn-sm ${this.activeFilter === 'weekly' ? 'btn-primary' : 'btn-secondary'}" onclick="Pages.Missions.filterMissions('weekly')">
                         Mingguan
                     </button>
+                    <button class="btn btn-sm ${this.activeFilter === 'dosen' ? 'btn-primary' : 'btn-secondary'}" onclick="Pages.Missions.filterMissions('dosen')">
+                        <i class="fas fa-chalkboard-teacher"></i> Dari Dosen
+                    </button>
+                </div>
+                
+                <!-- Dosen Custom Quizzes Section -->
+                <div id="dosen-quizzes" class="mb-lg" style="${this.activeFilter && this.activeFilter !== 'dosen' ? 'display:none;' : ''}">
+                    ${Components.sectionHeader('👨‍🏫 Quiz dari Dosen', '', '')}
+                    <div id="dosen-quiz-list"></div>
                 </div>
                 
                 <!-- System Quizzes Section -->
-                <div id="system-quizzes" class="mb-lg">
-                    ${Components.sectionHeader('📝 Quiz Tersedia', '', '')}
+                <div id="system-quizzes" class="mb-lg" style="${this.activeFilter === 'dosen' ? 'display:none;' : ''}">
+                    ${Components.sectionHeader('📝 Quiz Sistem', '', '')}
                     <div id="quiz-list"></div>
                 </div>
             </div>
@@ -81,7 +99,294 @@ Pages.Missions = {
         `;
 
         Components.setupTabBar();
+        await this.loadDosenMissions();
         this.renderSystemQuizzes();
+        this.renderDosenQuizzes();
+    },
+
+    async loadDosenMissions() {
+        try {
+            const response = await Api.request('/missions/dosen');
+            if (response.success) {
+                this.dosenMissions = response.data.missions || [];
+            }
+        } catch (error) {
+            // Use localStorage stored missions
+            this.dosenMissions = Utils.storage.get('wp_dosen_missions') || [];
+        }
+    },
+
+    renderDosenQuizzes() {
+        const container = document.getElementById('dosen-quiz-list');
+        if (!container) return;
+
+        if (this.dosenMissions.length === 0) {
+            container.innerHTML = `
+                <div class="card text-center text-muted">
+                    <i class="fas fa-chalkboard" style="font-size: 32px; margin-bottom: 12px;"></i>
+                    <p>Belum ada quiz dari dosen</p>
+                </div>
+            `;
+            return;
+        }
+
+        const completedQuizzes = Utils.storage.get('wp_completed_quizzes') || [];
+
+        container.innerHTML = this.dosenMissions.map(quiz => {
+            const isCompleted = completedQuizzes.includes(quiz.id);
+
+            return `
+                <div class="card mb-md" style="border-left: 4px solid #8b5cf6;">
+                    <div class="flex justify-between items-start mb-sm">
+                        <div>
+                            <span class="badge" style="background: rgba(139, 92, 246, 0.2); color: #8b5cf6; margin-bottom: 8px;">
+                                <i class="fas fa-chalkboard-teacher"></i> ${Utils.escapeHtml(quiz.dosen_name)}
+                            </span>
+                            <h4>${Utils.escapeHtml(quiz.title)}</h4>
+                            ${quiz.description ? `<p class="text-muted" style="font-size: 12px; margin-top: 4px;">${Utils.escapeHtml(quiz.description)}</p>` : ''}
+                        </div>
+                        <div class="text-right">
+                            <div style="font-size: 18px; font-weight: 700; color: var(--accent);">
+                                +${Utils.formatCurrency(quiz.reward)}
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-muted mb-md" style="font-size: 13px;">
+                        <i class="fas fa-question-circle"></i> ${quiz.questions} pertanyaan • 
+                        <i class="fas fa-clock"></i> ${quiz.questions * 30} detik
+                    </p>
+                    ${isCompleted ? `
+                        <div class="badge badge-success">
+                            <i class="fas fa-check"></i> Sudah Dikerjakan
+                        </div>
+                    ` : `
+                        <button class="btn btn-primary btn-sm" onclick="Pages.Missions.startQuiz('${quiz.id}', '${quiz.topic}', ${quiz.questions}, ${quiz.reward}, '${Utils.escapeHtml(quiz.title)}')">
+                            <i class="fas fa-play"></i> Mulai Quiz
+                        </button>
+                    `}
+                </div>
+            `;
+        }).join('');
+    },
+
+    showCreateMissionForm() {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay active';
+        overlay.id = 'create-mission-modal';
+        overlay.innerHTML = `
+            <div class="modal" style="max-width: 450px; max-height: 90vh; overflow-y: auto;">
+                <div class="modal-header">
+                    <h3 class="modal-title">Buat Quiz Baru</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form id="create-mission-form" onsubmit="Pages.Missions.createDosenMission(event)">
+                    <div class="form-group">
+                        <label class="form-label">Judul Quiz</label>
+                        <input type="text" class="form-input" id="mission-title" placeholder="Contoh: Quiz Praktikum Minggu 5" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Deskripsi</label>
+                        <textarea class="form-input" id="mission-description" rows="2" placeholder="Deskripsi singkat quiz"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Topik</label>
+                        <select class="form-input" id="mission-topic" required>
+                            <option value="programming">Pemrograman</option>
+                            <option value="database">Database</option>
+                            <option value="general">Pengetahuan Umum IT</option>
+                            <option value="math">Matematika</option>
+                            <option value="custom">Custom (Buat Pertanyaan Sendiri)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex gap-sm">
+                        <div class="form-group flex-1">
+                            <label class="form-label">Jumlah Soal</label>
+                            <input type="number" class="form-input" id="mission-questions" value="5" min="3" max="10" required>
+                        </div>
+                        <div class="form-group flex-1">
+                            <label class="form-label">Reward Poin</label>
+                            <input type="number" class="form-input" id="mission-reward" value="500" min="100" step="50" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Custom Questions Section -->
+                    <div id="custom-questions-section" style="display: none;">
+                        <div class="flex items-center justify-between mb-sm">
+                            <label class="form-label" style="margin: 0;">Pertanyaan Custom</label>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="Pages.Missions.addCustomQuestion()">
+                                <i class="fas fa-plus"></i> Tambah
+                            </button>
+                        </div>
+                        <div id="custom-questions-list"></div>
+                    </div>
+                    
+                    <div class="flex gap-sm mt-lg">
+                        <button type="button" class="btn btn-secondary flex-1" onclick="this.closest('.modal-overlay').remove()">
+                            Batal
+                        </button>
+                        <button type="submit" class="btn btn-primary flex-1">
+                            <i class="fas fa-check"></i> Buat Quiz
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        // Add listener for topic change
+        document.getElementById('mission-topic').addEventListener('change', (e) => {
+            const customSection = document.getElementById('custom-questions-section');
+            if (e.target.value === 'custom') {
+                customSection.style.display = 'block';
+                this.initCustomQuestions();
+            } else {
+                customSection.style.display = 'none';
+            }
+        });
+    },
+
+    customQuestions: [],
+
+    initCustomQuestions() {
+        this.customQuestions = [];
+        this.addCustomQuestion();
+    },
+
+    addCustomQuestion() {
+        const container = document.getElementById('custom-questions-list');
+        const index = this.customQuestions.length;
+
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'card mb-sm';
+        questionDiv.id = `custom-q-${index}`;
+        questionDiv.innerHTML = `
+            <div class="flex items-center justify-between mb-sm">
+                <strong>Pertanyaan ${index + 1}</strong>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="this.closest('.card').remove()">
+                    <i class="fas fa-trash" style="color: #ef4444;"></i>
+                </button>
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-input custom-question" placeholder="Tulis pertanyaan..." required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" style="font-size: 12px;">Pilihan Jawaban</label>
+                <input type="text" class="form-input mb-xs custom-option" placeholder="Pilihan A" required>
+                <input type="text" class="form-input mb-xs custom-option" placeholder="Pilihan B" required>
+                <input type="text" class="form-input mb-xs custom-option" placeholder="Pilihan C" required>
+                <input type="text" class="form-input custom-option" placeholder="Pilihan D" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" style="font-size: 12px;">Jawaban Benar</label>
+                <select class="form-input custom-answer" required>
+                    <option value="0">A</option>
+                    <option value="1">B</option>
+                    <option value="2">C</option>
+                    <option value="3">D</option>
+                </select>
+            </div>
+        `;
+
+        container.appendChild(questionDiv);
+        this.customQuestions.push({});
+    },
+
+    async createDosenMission(e) {
+        e.preventDefault();
+
+        const title = document.getElementById('mission-title').value.trim();
+        const description = document.getElementById('mission-description').value.trim();
+        const topic = document.getElementById('mission-topic').value;
+        const questions = parseInt(document.getElementById('mission-questions').value);
+        const reward = parseInt(document.getElementById('mission-reward').value);
+
+        const user = Auth.getUser();
+
+        // Create mission object
+        const newMission = {
+            id: 'dosen-quiz-' + Date.now(),
+            title,
+            description,
+            topic,
+            questions: topic === 'custom' ? this.getCustomQuestionsData().length : questions,
+            reward,
+            dosen_name: user?.name || 'Dosen',
+            dosen_id: user?.id,
+            created_at: new Date().toISOString(),
+            is_active: true,
+            custom_questions: topic === 'custom' ? this.getCustomQuestionsData() : null
+        };
+
+        // Close modal
+        document.getElementById('create-mission-modal')?.remove();
+
+        Utils.showLoading('Membuat quiz...');
+
+        try {
+            const response = await Api.request('/missions/dosen', {
+                method: 'POST',
+                body: newMission
+            });
+
+            Utils.hideLoading();
+
+            if (response.success) {
+                Utils.toast('Quiz berhasil dibuat!', 'success');
+                // Send push notification
+                if (typeof PushNotification !== 'undefined') {
+                    PushNotification.notifyNewQuiz(title, user?.name, reward);
+                }
+                this.render();
+            }
+        } catch (error) {
+            Utils.hideLoading();
+
+            // Save to localStorage
+            const storedMissions = Utils.storage.get('wp_dosen_missions') || [];
+            storedMissions.unshift(newMission);
+            Utils.storage.set('wp_dosen_missions', storedMissions);
+
+            // Update local array
+            this.dosenMissions.unshift(newMission);
+
+            // Save custom quiz bank if custom questions
+            if (newMission.custom_questions) {
+                this.quizBank[newMission.id] = newMission.custom_questions;
+            }
+
+            // Send push notification
+            if (typeof PushNotification !== 'undefined') {
+                PushNotification.notifyNewQuiz(title, user?.name, reward);
+            }
+
+            Utils.toast('Quiz berhasil dibuat!', 'success');
+            this.renderDosenQuizzes();
+        }
+    },
+
+    getCustomQuestionsData() {
+        const container = document.getElementById('custom-questions-list');
+        const questionCards = container.querySelectorAll('.card');
+        const questions = [];
+
+        questionCards.forEach(card => {
+            const q = card.querySelector('.custom-question').value;
+            const options = Array.from(card.querySelectorAll('.custom-option')).map(o => o.value);
+            const answer = parseInt(card.querySelector('.custom-answer').value);
+
+            if (q && options.every(o => o)) {
+                questions.push({ q, options, answer });
+            }
+        });
+
+        return questions;
     },
 
     filterMissions(type) {
@@ -92,19 +397,47 @@ Pages.Missions = {
     renderSystemQuizzes() {
         const container = document.getElementById('quiz-list');
 
-        // Get today's daily quiz and this week's weekly quiz
-        const dayIndex = new Date().getDay();
-        const dailyQuiz = this.systemMissions.daily[dayIndex % this.systemMissions.daily.length];
-        const weekIndex = Math.floor(new Date().getDate() / 7);
-        const weeklyQuiz = this.systemMissions.weekly[weekIndex % this.systemMissions.weekly.length];
+        // Generate random quiz based on date seed
+        const today = new Date();
+        const dateString = today.toISOString().split('T')[0]; // YYYY-MM-DD
+        const weekNumber = this.getWeekNumber(today);
+
+        // Seed-based random selection for consistent daily/weekly quizzes
+        const dailySeed = this.hashCode(dateString);
+        const weeklySeed = this.hashCode(`week-${today.getFullYear()}-${weekNumber}`);
+
+        // Get random daily quiz (changes every day)
+        const dailyIndex = Math.abs(dailySeed) % this.systemMissions.daily.length;
+        const dailyQuiz = this.systemMissions.daily[dailyIndex];
+
+        // Get random weekly quiz (changes every week)
+        const weeklyIndex = Math.abs(weeklySeed) % this.systemMissions.weekly.length;
+        const weeklyQuiz = this.systemMissions.weekly[weeklyIndex];
+
+        // Random topics for variety
+        const allTopics = ['programming', 'database', 'general', 'math'];
+        const dailyTopicIndex = Math.abs(dailySeed + 1) % allTopics.length;
+        const weeklyTopicIndex = Math.abs(weeklySeed + 1) % allTopics.length;
 
         // Check if filtered
         let quizzes = [];
         if (!this.activeFilter || this.activeFilter === 'quiz' || this.activeFilter === 'daily') {
-            quizzes.push({ ...dailyQuiz, type: 'daily', id: 'daily-' + dayIndex });
+            quizzes.push({
+                ...dailyQuiz,
+                topic: allTopics[dailyTopicIndex],
+                title: `Quiz Harian: ${this.getTopicName(allTopics[dailyTopicIndex])}`,
+                type: 'daily',
+                id: 'daily-' + dateString
+            });
         }
         if (!this.activeFilter || this.activeFilter === 'quiz' || this.activeFilter === 'weekly') {
-            quizzes.push({ ...weeklyQuiz, type: 'weekly', id: 'weekly-' + weekIndex });
+            quizzes.push({
+                ...weeklyQuiz,
+                topic: allTopics[weeklyTopicIndex],
+                title: `Quiz Mingguan: ${this.getTopicName(allTopics[weeklyTopicIndex])}`,
+                type: 'weekly',
+                id: 'weekly-' + today.getFullYear() + '-' + weekNumber
+            });
         }
 
         if (quizzes.length === 0) {
@@ -612,5 +945,36 @@ Pages.Missions = {
                 Utils.toast(error.message || 'Gagal membuat misi', 'error');
             }
         });
+    },
+
+    // Helper function to generate consistent hash from string
+    hashCode(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return hash;
+    },
+
+    // Get ISO week number
+    getWeekNumber(date) {
+        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        const dayNum = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    },
+
+    // Get topic display name
+    getTopicName(topic) {
+        const names = {
+            programming: 'Pemrograman',
+            database: 'Database & SQL',
+            general: 'Pengetahuan IT',
+            math: 'Matematika'
+        };
+        return names[topic] || topic;
     }
 };

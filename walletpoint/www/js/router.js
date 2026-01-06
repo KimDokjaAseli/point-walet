@@ -106,6 +106,15 @@ const Router = {
             requiresAuth: true
         });
 
+        this.register('/transfer', () => Pages.Transfer.render(), {
+            requiresAuth: true
+        });
+
+        this.register('/analytics', () => Pages.Analytics.render(), {
+            requiresAuth: true,
+            roles: ['admin']
+        });
+
         // Handle browser back/forward
         window.addEventListener('popstate', (event) => {
             if (event.state && event.state.path) {

@@ -166,8 +166,8 @@ Pages.Marketplace = {
             }
         } catch (error) {
             console.log('Error loading orders:', error);
-            // Use mock data for demo
-            this.myOrders = this.getMockMyOrders();
+            // Use localStorage orders
+            this.myOrders = Utils.storage.get('wp_my_orders') || [];
             this.renderMyOrdersList();
         }
     },
@@ -1108,51 +1108,82 @@ Pages.Marketplace = {
         overlay.innerHTML = `
             <div class="modal">
                 <div class="modal-header">
-                    <h3 class="modal-title">Pilih Metode Pembayaran</h3>
+                    <h3 class="modal-title">Konfirmasi Pembayaran</h3>
                     <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 
-                <div class="mb-lg">
+                <div class="mb-lg text-center">
                     <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 8px;">Total Pembayaran</div>
-                    <div style="font-size: 28px; font-weight: 700; color: var(--primary);">${Utils.formatCurrency(total)}</div>
+                    <div style="font-size: 32px; font-weight: 700; color: var(--primary);">${Utils.formatCurrency(total)}</div>
                 </div>
                 
-                <!-- Payment Options -->
-                <div class="payment-options">
-                    <!-- Pay with Balance/Points -->
-                    <button class="btn btn-block mb-sm ${canPayWithBalance ? '' : 'btn-disabled'}" 
-                            style="padding: 16px; text-align: left; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none;"
-                            onclick="Pages.Marketplace.payWithBalance(${total})"
-                            ${canPayWithBalance ? '' : 'disabled'}>
-                        <div class="flex items-center gap-md">
-                            <i class="fas fa-wallet" style="font-size: 24px;"></i>
-                            <div>
-                                <div style="font-weight: 600;">Bayar dengan Poin</div>
-                                <div style="font-size: 12px; opacity: 0.9;">Saldo: ${Utils.formatCurrency(balance)}</div>
+                <!-- Balance Info -->
+                <div class="card mb-lg" style="background: ${canPayWithBalance ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'};">
+                    <div class="flex items-center gap-md">
+                        <div style="width: 48px; height: 48px; border-radius: 50%; background: ${canPayWithBalance ? '#10b981' : '#ef4444'}; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-wallet" style="color: white; font-size: 20px;"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-muted" style="font-size: 12px;">Saldo Poin Anda</div>
+                            <div style="font-weight: 700; font-size: 20px; color: ${canPayWithBalance ? '#10b981' : '#ef4444'};">
+                                ${Utils.formatCurrency(balance)}
                             </div>
                         </div>
-                        ${!canPayWithBalance ? '<span class="badge badge-danger" style="margin-left: auto;">Saldo Kurang</span>' : ''}
-                    </button>
-                    
-                    <!-- Pay with QRIS -->
-                    <button class="btn btn-block" 
-                            style="padding: 16px; text-align: left; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none;"
-                            onclick="Pages.Marketplace.payWithQRIS(${total})">
-                        <div class="flex items-center gap-md">
-                            <i class="fas fa-qrcode" style="font-size: 24px;"></i>
-                            <div>
-                                <div style="font-weight: 600;">Bayar dengan QRIS</div>
-                                <div style="font-size: 12px; opacity: 0.9;">Scan QR Code untuk bayar</div>
-                            </div>
-                        </div>
-                    </button>
+                        ${canPayWithBalance ? `
+                            <i class="fas fa-check-circle" style="color: #10b981; font-size: 24px;"></i>
+                        ` : `
+                            <span class="badge badge-danger">Kurang</span>
+                        `}
+                    </div>
                 </div>
                 
-                <button class="btn btn-secondary btn-block mt-lg" onclick="this.closest('.modal-overlay').remove(); Pages.Marketplace.showCart()">
-                    <i class="fas fa-arrow-left"></i> Kembali
-                </button>
+                ${!canPayWithBalance ? `
+                    <div class="alert alert-danger mb-lg" style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #ef4444; border-radius: 12px; padding: 12px;">
+                        <div class="flex items-center gap-sm">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div>
+                                <strong>Saldo Tidak Cukup</strong>
+                                <div style="font-size: 12px; margin-top: 4px;">
+                                    Anda membutuhkan ${Utils.formatCurrency(total - balance)} poin lagi. 
+                                    Selesaikan quiz untuk mendapatkan poin!
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="mb-lg">
+                        <div class="flex justify-between text-muted" style="font-size: 13px; margin-bottom: 8px;">
+                            <span>Saldo saat ini</span>
+                            <span>${Utils.formatCurrency(balance)}</span>
+                        </div>
+                        <div class="flex justify-between text-muted" style="font-size: 13px; margin-bottom: 8px;">
+                            <span>Total belanja</span>
+                            <span style="color: #ef4444;">-${Utils.formatCurrency(total)}</span>
+                        </div>
+                        <hr style="border: none; border-top: 1px dashed var(--border); margin: 12px 0;">
+                        <div class="flex justify-between" style="font-weight: 600;">
+                            <span>Sisa saldo</span>
+                            <span style="color: var(--accent);">${Utils.formatCurrency(balance - total)}</span>
+                        </div>
+                    </div>
+                `}
+                
+                <div class="flex gap-sm">
+                    <button class="btn btn-secondary flex-1" onclick="this.closest('.modal-overlay').remove(); Pages.Marketplace.showCart()">
+                        <i class="fas fa-arrow-left"></i> Kembali
+                    </button>
+                    ${canPayWithBalance ? `
+                        <button class="btn btn-primary flex-1" onclick="Pages.Marketplace.payWithBalance(${total})">
+                            <i class="fas fa-check"></i> Bayar
+                        </button>
+                    ` : `
+                        <button class="btn btn-primary flex-1" onclick="this.closest('.modal-overlay').remove(); Router.navigate('/missions')">
+                            <i class="fas fa-trophy"></i> Ke Quiz
+                        </button>
+                    `}
+                </div>
             </div>
         `;
 
@@ -1167,7 +1198,9 @@ Pages.Marketplace = {
 
         const items = this.cart.map(item => ({
             product_id: item.product_id,
-            quantity: item.quantity
+            product_name: item.product.name,
+            quantity: item.quantity,
+            price: item.product.price
         }));
 
         Utils.showLoading('Memproses pembayaran...');
@@ -1178,6 +1211,7 @@ Pages.Marketplace = {
             Utils.hideLoading();
 
             if (response.success) {
+                this.saveOrderToLocal(total, items);
                 this.clearCart(); // Clear cart and localStorage
                 this.updateCartBadge();
                 this.showPaymentSuccess(response.data, 'balance', total);
@@ -1186,6 +1220,26 @@ Pages.Marketplace = {
             Utils.hideLoading();
             Utils.toast(error.message || 'Pembayaran gagal', 'error');
         }
+    },
+
+    saveOrderToLocal(total, items) {
+        const orders = Utils.storage.get('wp_my_orders') || [];
+
+        const newOrder = {
+            id: 'order-' + Date.now(),
+            total_amount: total,
+            status: 'PAID',
+            fulfillment_status: 'processing',
+            created_at: new Date().toISOString(),
+            items: items.map(item => ({
+                product: { name: item.product_name },
+                quantity: item.quantity,
+                price: item.price
+            }))
+        };
+
+        orders.unshift(newOrder);
+        Utils.storage.set('wp_my_orders', orders);
     },
 
     async payWithQRIS(total) {

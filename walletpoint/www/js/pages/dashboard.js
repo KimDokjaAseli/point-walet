@@ -58,6 +58,63 @@ Pages.Dashboard = {
 
         Components.setupTabBar();
         await this.loadData();
+        this.checkPushNotificationPermission();
+    },
+
+    checkPushNotificationPermission() {
+        // Only prompt if not already asked and notifications are supported
+        if (typeof PushNotification !== 'undefined' && PushNotification.isSupported) {
+            const hasAsked = Utils.storage.get('wp_push_asked');
+
+            if (!hasAsked && Notification.permission === 'default') {
+                // Show prompt after a short delay
+                setTimeout(() => {
+                    this.showPushNotificationPrompt();
+                }, 2000);
+            }
+        }
+    },
+
+    showPushNotificationPrompt() {
+        const banner = document.createElement('div');
+        banner.id = 'push-notification-banner';
+        banner.innerHTML = `
+            <div class="card" style="position: fixed; bottom: 80px; left: 16px; right: 16px; z-index: 1000; background: linear-gradient(135deg, var(--primary), var(--accent)); border: none;">
+                <div class="flex items-center gap-md">
+                    <div style="font-size: 32px;">🔔</div>
+                    <div class="flex-1">
+                        <strong style="color: white;">Aktifkan Notifikasi</strong>
+                        <p style="color: rgba(255,255,255,0.8); font-size: 12px; margin-top: 4px;">
+                            Dapatkan info quiz baru & transfer masuk
+                        </p>
+                    </div>
+                </div>
+                <div class="flex gap-sm mt-md">
+                    <button class="btn btn-secondary flex-1" onclick="Pages.Dashboard.dismissPushPrompt()">
+                        Nanti
+                    </button>
+                    <button class="btn flex-1" style="background: white; color: var(--primary);" onclick="Pages.Dashboard.enablePushNotifications()">
+                        <i class="fas fa-bell"></i> Aktifkan
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(banner);
+    },
+
+    dismissPushPrompt() {
+        Utils.storage.set('wp_push_asked', true);
+        document.getElementById('push-notification-banner')?.remove();
+    },
+
+    async enablePushNotifications() {
+        document.getElementById('push-notification-banner')?.remove();
+        Utils.storage.set('wp_push_asked', true);
+
+        if (typeof PushNotification !== 'undefined') {
+            await PushNotification.requestPermission();
+        }
     },
 
     async loadData() {
