@@ -1,0 +1,647 @@
+/* ========================================
+   Component Specific Styles
+   ======================================== */
+
+/* ========================================
+   Login Page
+   ======================================== */
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing-lg);
+}
+
+.login-header {
+    text-align: center;
+    padding: var(--spacing-xl) 0;
+}
+
+.login-logo {
+    width: 80px;
+    height: 80px;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-xl);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--spacing-md);
+    font-size: 40px;
+    box-shadow: var(--shadow-glow);
+}
+
+.login-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: var(--spacing-xs);
+}
+
+.login-subtitle {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.login-form {
+    flex: 1;
+}
+
+.role-selector {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+.role-btn {
+    flex: 1;
+    padding: var(--spacing-md);
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    text-align: center;
+}
+
+.role-btn.active {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.role-btn:active {
+    transform: scale(0.98);
+}
+
+/* ========================================
+   Dashboard Page
+   ======================================== */
+.dashboard-page {
+    padding: var(--spacing-md);
+}
+
+.dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-lg);
+    padding-top: var(--safe-area-top);
+}
+
+.user-greeting {
+    flex: 1;
+}
+
+.greeting-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.user-name {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.user-avatar {
+    width: 48px;
+    height: 48px;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: white;
+}
+
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+.quick-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--spacing-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.quick-action:active {
+    transform: scale(0.95);
+    background: var(--border-color);
+}
+
+.quick-action-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--gradient-card);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-bottom: var(--spacing-xs);
+}
+
+.quick-action-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-md);
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.section-link {
+    font-size: 14px;
+    color: var(--primary);
+    cursor: pointer;
+}
+
+/* ========================================
+   Mission Cards
+   ======================================== */
+.mission-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.mission-card:active {
+    transform: scale(0.98);
+}
+
+.mission-header {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.mission-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--gradient-card);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.mission-info {
+    flex: 1;
+}
+
+.mission-title {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.mission-creator {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.mission-reward {
+    text-align: right;
+}
+
+.reward-amount {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--success);
+}
+
+.reward-label {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.mission-footer {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.mission-difficulty {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.difficulty-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--text-muted);
+    border-radius: 50%;
+}
+
+.difficulty-dot.active.easy {
+    background: var(--success);
+}
+
+.difficulty-dot.active.medium {
+    background: var(--warning);
+}
+
+.difficulty-dot.active.hard {
+    background: var(--danger);
+}
+
+/* ========================================
+   QR Scanner
+   ======================================== */
+.scanner-page {
+    position: relative;
+    height: 100vh;
+    background: black;
+}
+
+.scanner-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: var(--spacing-md);
+    padding-top: calc(var(--spacing-md) + var(--safe-area-top));
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
+    z-index: 10;
+}
+
+.scanner-title {
+    color: white;
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.scanner-viewport {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 280px;
+    height: 280px;
+}
+
+.scanner-frame {
+    width: 100%;
+    height: 100%;
+    border: 3px solid var(--primary);
+    border-radius: var(--radius-lg);
+    position: relative;
+}
+
+.scanner-frame::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--primary);
+    animation: scanLine 2s ease-in-out infinite;
+}
+
+@keyframes scanLine {
+
+    0%,
+    100% {
+        top: 0;
+    }
+
+    50% {
+        top: 100%;
+    }
+}
+
+.scanner-hint {
+    position: absolute;
+    bottom: 120px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: white;
+    font-size: 14px;
+}
+
+.scanner-actions {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: var(--spacing-lg);
+    padding-bottom: calc(var(--spacing-lg) + 70px);
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-md);
+}
+
+/* ========================================
+   QR Code Display
+   ======================================== */
+.qr-display {
+    text-align: center;
+    padding: var(--spacing-lg);
+}
+
+.qr-image {
+    background: white;
+    padding: var(--spacing-md);
+    border-radius: var(--radius-lg);
+    display: inline-block;
+    margin-bottom: var(--spacing-lg);
+}
+
+.qr-image img {
+    width: 200px;
+    height: 200px;
+}
+
+.qr-info {
+    margin-bottom: var(--spacing-lg);
+}
+
+.qr-amount {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--success);
+    margin-bottom: var(--spacing-sm);
+}
+
+.qr-timer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    color: var(--text-secondary);
+}
+
+.timer-value {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--warning);
+}
+
+/* ========================================
+   Marketplace
+   ======================================== */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+}
+
+.product-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.product-card:active {
+    transform: scale(0.98);
+}
+
+.product-image {
+    width: 100%;
+    aspect-ratio: 1;
+    background: var(--gradient-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+}
+
+.product-info {
+    padding: var(--spacing-md);
+}
+
+.product-name {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: var(--spacing-xs);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.product-seller {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.product-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+/* ========================================
+   Profile Page
+   ======================================== */
+.profile-header {
+    text-align: center;
+    padding: var(--spacing-xl);
+    background: var(--gradient-primary);
+    margin-bottom: var(--spacing-lg);
+}
+
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--spacing-md);
+    font-size: 36px;
+}
+
+.profile-name {
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: var(--spacing-xs);
+}
+
+.profile-role {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.profile-menu {
+    padding: 0 var(--spacing-md);
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.menu-item:active {
+    transform: scale(0.98);
+    background: var(--border-color);
+}
+
+.menu-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--gradient-card);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.menu-label {
+    flex: 1;
+    font-weight: 500;
+}
+
+.menu-arrow {
+    color: var(--text-muted);
+}
+
+/* ========================================
+   Transaction Item
+   ======================================== */
+.transaction-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.transaction-icon {
+    width: 44px;
+    height: 44px;
+    background: var(--gradient-card);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.transaction-icon.credit {
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.transaction-icon.debit {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.transaction-info {
+    flex: 1;
+}
+
+.transaction-title {
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.transaction-date {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.transaction-amount {
+    font-weight: 700;
+}
+
+.transaction-amount.credit {
+    color: var(--success);
+}
+
+.transaction-amount.debit {
+    color: var(--danger);
+}
+
+/* ========================================
+   Offline Indicator
+   ======================================== */
+.offline-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: var(--spacing-sm);
+    padding-top: calc(var(--spacing-sm) + var(--safe-area-top));
+    background: var(--warning);
+    color: black;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 400;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+/* ========================================
+   Pull to Refresh
+   ======================================== */
+.ptr-element {
+    text-align: center;
+    padding: var(--spacing-md);
+    color: var(--text-secondary);
+}
+
+.ptr-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border-color);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}

@@ -1,0 +1,30 @@
+{
+    "name": "walletpoint-mobile",
+    "version": "1.0.0",
+    "description": "WalletPoint - Platform Poin Gamifikasi Pembelajaran",
+    "main": "index.js",
+    "scripts": {
+        "prepare": "cordova prepare",
+        "build:android": "cordova build android",
+        "run:android": "cordova run android",
+        "serve": "cordova serve"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "cordova-android": "^13.0.0"
+    },
+    "cordova": {
+        "plugins": {
+            "cordova-plugin-whitelist": {},
+            "cordova-plugin-statusbar": {},
+            "cordova-plugin-splashscreen": {},
+            "cordova-plugin-camera": {},
+            "phonegap-plugin-barcodescanner": {},
+            "cordova-sqlite-storage": {},
+            "cordova-plugin-network-information": {}
+        },
+        "platforms": [
+            "android"
+        ]
+    }
+}
